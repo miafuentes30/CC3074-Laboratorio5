@@ -198,3 +198,48 @@ X_cls_train, X_cls_test, y_cls_train, y_cls_test = train_test_split(
 print(f"CLASIFICACIÓN — Train: {X_cls_train.shape} | Test: {X_cls_test.shape}")
 
 
+# ACTIVIDAD 1 - NB REGRESION (BASE)
+print("\n" + "="*60)
+print("ACTIVIDAD 1 — NB REGRESIÓN (modelo base)")
+print("="*60)
+
+pipeline_nb_reg = Pipeline([
+    ("scaler", StandardScaler()),
+    ("nb",     GaussianNB())
+])
+
+t0 = time.time()
+pipeline_nb_reg.fit(X_train, y_train)
+tiempo_nb_reg = time.time() - t0
+
+y_pred_nb_reg = pipeline_nb_reg.predict(X_test)
+
+mse_nb_reg  = mean_squared_error(y_test, y_pred_nb_reg)
+rmse_nb_reg = np.sqrt(mse_nb_reg)
+r2_nb_reg   = r2_score(y_test, y_pred_nb_reg)
+mae_nb_reg  = mean_absolute_error(y_test, y_pred_nb_reg)
+
+print(f"RMSE : {rmse_nb_reg:.4f}")
+print(f"R²   : {r2_nb_reg:.4f}")
+print(f"MAE  : {mae_nb_reg:.4f}")
+print(f"Tiempo entrenamiento: {tiempo_nb_reg:.3f}s")
+
+plt.figure(figsize=(8, 5))
+plt.scatter(y_test, y_pred_nb_reg, alpha=0.25, color="steelblue", s=10)
+plt.plot([y_test.min(), y_test.max()],
+         [y_test.min(), y_test.max()], "r--", lw=2)
+plt.xlabel("Precio real (USD)")
+plt.ylabel("Precio predicho (USD)")
+plt.title(f"NB Regresión Base | R²={r2_nb_reg:.3f}  RMSE={rmse_nb_reg:.2f}")
+plt.tight_layout()
+display_plot()
+
+errores = y_pred_nb_reg - y_test
+plt.figure(figsize=(8, 4))
+sns.histplot(errores, kde=True, color="coral")
+plt.axvline(0, color="red", linestyle="--")
+plt.xlabel("Diferencia (Predicción - Real)")
+plt.ylabel("Frecuencia")
+plt.title("Distribución de errores — NB Regresión")
+plt.tight_layout()
+display_plot()
