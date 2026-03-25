@@ -155,4 +155,46 @@ df.dropna(subset=["price"], inplace=True)
 
 print(f"Dataset limpio: {df.shape}")
 
+# VARIABLE CATEGORICA (LAB 4)
+q33 = df["price"].quantile(0.33)
+q66 = df["price"].quantile(0.66)
+print(f"P33 = ${q33:.2f}  |  P66 = ${q66:.2f}")
+
+def clasificar_precio(p):
+    if p <= q33:   return "Economica"
+    elif p <= q66: return "Intermedia"
+    else:           return "Cara"
+
+df["precio_cat"] = df["price"].apply(clasificar_precio)
+
+# MATRICES X/Y REGRESION
+df_num = df.select_dtypes(include=[np.number]).copy()
+drop_eda = [c for c in ["capacity_group", "review_group"] if c in df_num.columns]
+df_num.drop(columns=drop_eda, inplace=True, errors="ignore")
+
+y = df_num["price"].copy()
+X = df_num.drop(columns=["price"]).copy()
+X = X.dropna(axis=1, how="all")
+X = X.fillna(X.median(numeric_only=True))
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+print(f"\nREGRESIÓN — Train: {X_train.shape} | Test: {X_test.shape}")
+
+# MATRICES X/Y CLASIFICACION
+df_cls = df_num.copy()
+df_cls["precio_cat"] = df["precio_cat"].values
+df_cls.drop(columns=["price"], inplace=True, errors="ignore")
+
+X_cls = df_cls.drop(columns=["precio_cat"]).copy()
+X_cls = X_cls.dropna(axis=1, how="all")
+X_cls = X_cls.fillna(X_cls.median(numeric_only=True))
+y_cls = df_cls["precio_cat"]
+
+X_cls_train, X_cls_test, y_cls_train, y_cls_test = train_test_split(
+    X_cls, y_cls, test_size=0.2, random_state=42, stratify=y_cls
+)
+print(f"CLASIFICACIÓN — Train: {X_cls_train.shape} | Test: {X_cls_test.shape}")
+
 
