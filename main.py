@@ -436,3 +436,124 @@ plt.ylabel("Accuracy")
 plt.legend()
 plt.tight_layout()
 display_plot()
+
+
+# ACTIVIDAD 9A - TUNEO NB CLASIFICACION
+print("\n" + "="*60)
+print("ACTIVIDAD 9A — TUNEO NB CLASIFICACIÓN (var_smoothing)")
+print("="*60)
+
+param_grid_cls = {
+    "nb__var_smoothing": np.logspace(0, -9, num=50)
+}
+
+grid_nb_cls = GridSearchCV(
+    pipeline_nb_cls,
+    param_grid=param_grid_cls,
+    cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=42),
+    scoring="accuracy",
+    n_jobs=-1
+)
+grid_nb_cls.fit(X_cls_train, y_cls_train)
+
+mejor_vs_cls = grid_nb_cls.best_params_["nb__var_smoothing"]
+print(f"Mejor var_smoothing (clasificación): {mejor_vs_cls:.2e}")
+print(f"Mejor accuracy CV: {grid_nb_cls.best_score_:.4f}")
+
+y_pred_nb_cls_tuned = grid_nb_cls.best_estimator_.predict(X_cls_test)
+acc_nb_cls_tuned = accuracy_score(y_cls_test, y_pred_nb_cls_tuned)
+tiempo_nb_cls_tuned = grid_nb_cls.refit_time_
+print(f"Accuracy en prueba (tuned): {acc_nb_cls_tuned:.4f}")
+print(f"Accuracy en prueba (base):  {acc_nb_cls:.4f}")
+print(f"Mejora: {acc_nb_cls_tuned - acc_nb_cls:+.4f}")
+
+results_cls = pd.DataFrame(grid_nb_cls.cv_results_)
+results_cls["var_smoothing"] = results_cls["param_nb__var_smoothing"]
+results_cls["accuracy_mean"] = results_cls["mean_test_score"]
+
+plt.figure(figsize=(8, 4))
+plt.plot(results_cls["var_smoothing"], results_cls["accuracy_mean"],
+         color="steelblue")
+plt.xscale("log")
+plt.xlabel("var_smoothing")
+plt.ylabel("Accuracy (CV)")
+plt.title("Accuracy vs var_smoothing — NB Clasificación")
+plt.axvline(mejor_vs_cls, color="red", linestyle="--",
+            label=f"Mejor = {mejor_vs_cls:.2e}")
+plt.legend()
+plt.tight_layout()
+display_plot()
+
+# ACTIVIDAD 9B - TUNEO NB REGRESION
+print("\n" + "="*60)
+print("ACTIVIDAD 9B — TUNEO NB REGRESIÓN (var_smoothing)")
+print("="*60)
+
+from sklearn.model_selection import KFold
+
+max_tune_samples = 20_000
+if len(X_train) > max_tune_samples:
+    idx_tune = X_train.sample(n=max_tune_samples, random_state=42).index
+    X_tune_reg = X_train.loc[idx_tune]
+    y_tune_reg = y_train.loc[idx_tune]
+else:
+    X_tune_reg = X_train
+    y_tune_reg = y_train
+
+var_smoothing_vals = np.logspace(0, -9, num=25)
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+rmse_cv_por_vs = []
+
+for vs in var_smoothing_vals:
+    pipe_tmp = Pipeline([
+        ("scaler", StandardScaler()),
+        ("nb",     GaussianNB(var_smoothing=vs))
+    ])
+    scores = -cross_val_score(
+        pipe_tmp, X_tune_reg, y_tune_reg,
+        cv=kf,
+        scoring="neg_root_mean_squared_error",
+        n_jobs=1
+    )
+    rmse_cv_por_vs.append(scores.mean())
+
+idx_mejor = int(np.argmin(rmse_cv_por_vs))
+mejor_vs_reg  = var_smoothing_vals[idx_mejor]
+mejor_rmse_cv = rmse_cv_por_vs[idx_mejor]
+
+print(f"Mejor var_smoothing (regresión): {mejor_vs_reg:.2e}")
+print(f"Mejor RMSE CV: {mejor_rmse_cv:.4f}")
+
+pipeline_nb_reg_tuned = Pipeline([
+    ("scaler", StandardScaler()),
+    ("nb",     GaussianNB(var_smoothing=mejor_vs_reg))
+])
+pipeline_nb_reg_tuned.fit(X_train, y_train)
+y_pred_nb_reg_tuned = pipeline_nb_reg_tuned.predict(X_test)
+rmse_nb_reg_tuned = np.sqrt(mean_squared_error(y_test, y_pred_nb_reg_tuned))
+r2_nb_reg_tuned   = r2_score(y_test, y_pred_nb_reg_tuned)
+
+print(f"RMSE en prueba (tuned): {rmse_nb_reg_tuned:.4f}")
+print(f"RMSE en prueba (base):  {rmse_nb_reg:.4f}")
+print(f"R² (tuned): {r2_nb_reg_tuned:.4f}")
+print(f"R² (base):  {r2_nb_reg:.4f}")
+print(f"Mejora RMSE: {rmse_nb_reg - rmse_nb_reg_tuned:+.4f}")
+
+plt.figure(figsize=(8, 4))
+plt.plot(var_smoothing_vals, rmse_cv_por_vs, color="coral")
+plt.xscale("log")
+plt.xlabel("var_smoothing")
+plt.ylabel("RMSE (CV 5-fold)")
+plt.title("RMSE vs var_smoothing — NB Regresión")
+plt.axvline(mejor_vs_reg, color="red", linestyle="--",
+            label=f"Mejor = {mejor_vs_reg:.2e}")
+plt.legend()
+plt.tight_layout()
+display_plot()
+
+
+# ACTIVIDAD 10 - COMPARACION CLASIFICACION FINAL
+print("\n" + "="*60)
+print("ACTIVIDAD 10 — COMPARACIÓN CLASIFICACIÓN FINAL")
+print("="*60)
