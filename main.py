@@ -557,3 +557,125 @@ display_plot()
 print("\n" + "="*60)
 print("ACTIVIDAD 10 — COMPARACIÓN CLASIFICACIÓN FINAL")
 print("="*60)
+
+t0 = time.time()
+arbol_cls = DecisionTreeClassifier(max_depth=12, random_state=42)
+arbol_cls.fit(X_cls_train, y_cls_train)
+tiempo_arbol_cls = time.time() - t0
+acc_arbol_cls = accuracy_score(y_cls_test, arbol_cls.predict(X_cls_test))
+
+t0 = time.time()
+rf_cls = RandomForestClassifier(n_estimators=100, max_depth=10,
+                                 random_state=42, n_jobs=-1)
+rf_cls.fit(X_cls_train, y_cls_train)
+tiempo_rf_cls = time.time() - t0
+acc_rf_cls = accuracy_score(y_cls_test, rf_cls.predict(X_cls_test))
+
+comp_cls = pd.DataFrame({
+    "Modelo":     ["Árbol Clasificación (d=12)",
+                   "Random Forest (n=100, d=10)",
+                   "Naive Bayes (base)",
+                   "Naive Bayes (tuned)"],
+    "Accuracy":   [round(acc_arbol_cls, 4),
+                   round(acc_rf_cls, 4),
+                   round(acc_nb_cls, 4),
+                   round(acc_nb_cls_tuned, 4)],
+    "Tiempo(s)":  [round(tiempo_arbol_cls, 3),
+                   round(tiempo_rf_cls, 3),
+                   round(tiempo_nb_cls, 3),
+                   round(tiempo_nb_cls_tuned, 3)]
+})
+print("\nComparación modelos de clasificación (mismo split):")
+print(comp_cls.to_string(index=False))
+
+pred_arbol_cls = arbol_cls.predict(X_cls_test)
+pred_rf_cls = rf_cls.predict(X_cls_test)
+
+cm_arbol = confusion_matrix(y_cls_test, pred_arbol_cls, labels=LABELS)
+cm_rf = confusion_matrix(y_cls_test, pred_rf_cls, labels=LABELS)
+cm_nb_tuned = confusion_matrix(y_cls_test, y_pred_nb_cls_tuned, labels=LABELS)
+
+print("\nMatriz de confusión — Árbol de Clasificación:")
+print(pd.DataFrame(
+    cm_arbol,
+    index=[f"Real: {l}" for l in LABELS],
+    columns=[f"Pred: {l}" for l in LABELS]
+))
+
+print("\nMatriz de confusión — Random Forest:")
+print(pd.DataFrame(
+    cm_rf,
+    index=[f"Real: {l}" for l in LABELS],
+    columns=[f"Pred: {l}" for l in LABELS]
+))
+
+print("\nMatriz de confusión — Naive Bayes (tuned):")
+print(pd.DataFrame(
+    cm_nb_tuned,
+    index=[f"Real: {l}" for l in LABELS],
+    columns=[f"Pred: {l}" for l in LABELS]
+))
+
+plt.figure(figsize=(9, 5))
+colores = ["#4C72B0", "#2ca02c", "#DD8452", "#9467bd"]
+bars = plt.bar(comp_cls["Modelo"], comp_cls["Accuracy"], color=colores)
+for bar, acc in zip(bars, comp_cls["Accuracy"]):
+    plt.text(bar.get_x() + bar.get_width()/2,
+             bar.get_height() + 0.003,
+             f"{acc:.2%}", ha="center", va="bottom", fontsize=10)
+plt.title("Comparación de Accuracy — Clasificación de Precio")
+plt.ylabel("Accuracy")
+plt.ylim(0, 1)
+plt.xticks(rotation=12)
+plt.tight_layout()
+display_plot()
+
+plt.figure(figsize=(9, 4))
+bars_t = plt.bar(comp_cls["Modelo"], comp_cls["Tiempo(s)"], color=colores)
+for bar, t in zip(bars_t, comp_cls["Tiempo(s)"]):
+    plt.text(bar.get_x() + bar.get_width()/2,
+             bar.get_height() + 0.01,
+             f"{t:.3f}s", ha="center", va="bottom", fontsize=10)
+plt.title("Tiempo de Entrenamiento — Comparación de Modelos")
+plt.ylabel("Segundos")
+plt.xticks(rotation=12)
+plt.tight_layout()
+display_plot()
+
+mejor_modelo_cls = comp_cls.loc[comp_cls["Accuracy"].idxmax(), "Modelo"]
+mas_lento = comp_cls.loc[comp_cls["Tiempo(s)"].idxmax(), "Modelo"]
+print(f"\nMejor modelo de clasificación (accuracy): {mejor_modelo_cls}")
+print(f"Modelo más lento: {mas_lento}")
+
+# COMPARACION FINAL - REGRESION
+print("\n" + "="*60)
+print("COMPARACIÓN FINAL — REGRESIÓN (todos los modelos)")
+print("="*60)
+
+comp_reg_final = pd.DataFrame({
+    "Modelo":   ["Regresión Lineal (Ridge)",
+                 "Árbol Regresión (d=10)",
+                 "Random Forest Regresión (n=200, d=12)",
+                 "Naive Bayes (base)",
+                 "Naive Bayes (tuned)"],
+    "RMSE":     [round(rmse_ridge, 4),
+                 round(rmse_arbol, 4),
+                 round(rmse_rf_reg, 4),
+                 round(rmse_nb_reg, 4),
+                 round(rmse_nb_reg_tuned, 4)],
+    "R²":       [round(r2_ridge, 4),
+                 round(r2_arbol, 4),
+                 round(r2_rf_reg, 4),
+                 round(r2_nb_reg, 4),
+                 round(r2_nb_reg_tuned, 4)]
+})
+print(comp_reg_final.to_string(index=False))
+
+mejor_reg_final = comp_reg_final.loc[comp_reg_final["R²"].idxmax(), "Modelo"]
+print(f"\nMejor modelo de regresión hasta el momento: {mejor_reg_final}")
+
+print("\n" + "="*60)
+print("Lab 5 completado :)")
+print("="*60)
+
+
